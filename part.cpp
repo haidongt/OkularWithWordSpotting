@@ -83,6 +83,7 @@
 #include "ui/sidebar.h"
 #include "ui/fileprinterpreview.h"
 #include "ui/guiutils.h"
+#include "ui/ncsafindbar.h" // added by Haidong Tang
 #include "conf/preferencesdialog.h"
 #include "settings.h"
 #include "core/action.h"
@@ -430,6 +431,12 @@ m_cliPresentation(false), m_cliPrint(false), m_embedMode(detectEmbedMode(parentW
     rightLayout->addWidget( m_pageView );
     m_findBar = new FindBar( m_document, rightContainer );
     rightLayout->addWidget( m_findBar );
+    
+    //Begin: added by Haidong Tang
+    m_ncsaFindBar = new NCSAFindBar( m_document, rightContainer );
+    rightLayout->addWidget( m_ncsaFindBar );
+    //End: added by Haidong Tang
+    
     m_bottomBar = new QWidget( rightContainer );
     QHBoxLayout * bottomBarLayout = new QHBoxLayout( m_bottomBar );
     m_pageSizeLabel = new PageSizeLabel( m_bottomBar, m_document );
@@ -625,6 +632,31 @@ void Part::setupViewerActions()
     m_findPrev = KStandardAction::findPrev( this, SLOT(slotFindPrev()), ac );
     m_findPrev->setEnabled( false );
 
+    //Begin: added by Haidong Tang
+    
+    m_ncsaFind = new KAction(this);
+    m_ncsaFind->setText(i18n("&NCSA find"));
+    ac->addAction("ncsa_find", m_ncsaFind);
+    connect(m_ncsaFind, SIGNAL(triggered(bool)), this, SLOT(slotShowNCSAFindBar()));
+    //QList<QKeySequence> s = m_ncsaFind->shortcuts();
+    //s.append( QKeySequence( Qt::Key_Slash ) );
+    //m_ncsaFind->setShortcuts( s );
+    m_ncsaFind->setEnabled( false );
+
+    m_ncsaFindNext = new KAction(this);
+    m_ncsaFindNext->setText(i18n("&NCSA findnext"));
+    ac->addAction("ncsa_findnext", m_ncsaFindNext);
+    connect(m_ncsaFindNext, SIGNAL(triggered(bool)), this, SLOT(slotNCSAFindNext()));
+    m_ncsaFindNext->setEnabled( false );
+
+    m_ncsaFindPrev = new KAction(this);
+    m_ncsaFindPrev->setText(i18n("&NCSA findprev"));
+    ac->addAction("ncsa_findprev", m_ncsaFindPrev);
+    connect(m_ncsaFindPrev, SIGNAL(triggered(bool)), this, SLOT(slotNCSAFindPrev()));
+    m_ncsaFindPrev->setEnabled( false );
+    
+    //End: added by Haidong Tang
+    
     m_saveCopyAs = 0;
     m_saveAs = 0;
 
@@ -691,9 +723,28 @@ void Part::setupViewerActions()
     connect(m_closeFindBar, SIGNAL(triggered()), this, SLOT(slotHideFindBar()));
     widget()->addAction(m_closeFindBar);
 
+    //Begin: added by Haidong Tang
+    m_closeNCSAFindBar = new KAction( i18n( "Close NCSA &Find Bar" ), ac );
+    ac->addAction("close_ncsa_find_bar", m_closeNCSAFindBar);
+    connect(m_closeNCSAFindBar, SIGNAL(triggered()), this, SLOT(slotHideNCSAFindBar()));
+    widget()->addAction(m_closeNCSAFindBar);
+    //End: added by Haidong Tang
+    
     KAction *pageno = new KAction( i18n( "Page Number" ), ac );
     pageno->setDefaultWidget( m_pageNumberTool );
     ac->addAction( "page_number", pageno );
+    
+    
+    //Begin: Added by Haidong Tang
+    
+    KAction *ncsaTest = new KAction(this);
+    ncsaTest->setText(i18n("&NCSA test"));
+    ac->addAction("ncsa_test", ncsaTest);
+    connect(ncsaTest, SIGNAL(triggered(bool)), this, SLOT(ncsaTestSlot()));
+    
+    
+    //End: Added by Haidong Tang
+    
 }
 
 void Part::setViewerShortcuts()
@@ -1210,6 +1261,10 @@ bool Part::openFile()
     m_find->setEnabled( ok && canSearch );
     m_findNext->setEnabled( ok && canSearch );
     m_findPrev->setEnabled( ok && canSearch );
+    m_ncsaFind->setEnabled( ok && canSearch ); //added by Haidong Tang
+    m_ncsaFindNext->setEnabled( ok && canSearch );//added by Haidong Tang
+    m_ncsaFindPrev->setEnabled( ok && canSearch );//added by Haidong Tang
+    
     if( m_saveAs ) m_saveAs->setEnabled( ok && (m_document->canSaveChanges() || isDocumentArchive) );
     if( m_saveCopyAs ) m_saveCopyAs->setEnabled( ok );
     emit enablePrintAction( ok && m_document->printingSupport() != Okular::Document::NoPrinting );
@@ -1408,6 +1463,9 @@ bool Part::closeUrl(bool promptToSave)
     m_find->setEnabled( false );
     m_findNext->setEnabled( false );
     m_findPrev->setEnabled( false );
+    m_ncsaFind->setEnabled( false ); //added by Haidong Tang
+    m_ncsaFindNext->setEnabled( false );//added by Haidong Tang
+    m_ncsaFindPrev->setEnabled( false );//added by Haidong Tang
     if( m_saveAs )  m_saveAs->setEnabled( false );
     if( m_saveCopyAs ) m_saveCopyAs->setEnabled( false );
     m_printPreview->setEnabled( false );
@@ -1775,6 +1833,28 @@ void Part::slotHideFindBar()
     }
 }
 
+//added by Haidong Tang
+
+void Part::slotShowNCSAFindBar()
+{
+    m_ncsaFindBar->show();
+    //m_findBar->focusAndSetCursor();
+    //m_closeFindBar->setShortcut( QKeySequence( Qt::Key_Escape ) );
+    
+}
+
+void Part::slotHideNCSAFindBar()
+{
+    //QMessageBox::warning(0, QString("Hello"), QString("hide"));
+}
+
+void Part::ncsaTestSlot()
+{
+    QMessageBox::warning(0, QString("Hello"), QString("World"));
+}
+
+//end added by Haidong Tang
+
 //BEGIN go to page dialog
 class GotoPageDialog : public KDialog
 {
@@ -1992,6 +2072,29 @@ void Part::slotFindPrev()
     else
         m_findBar->findPrev();
 }
+
+
+//Begin: added by Haidong Tang
+
+void Part::slotNCSAFind()
+{
+    QMessageBox::warning(0, QString("Hello"), QString("find"));
+}
+
+void Part::slotNCSAFindNext()
+{
+    QMessageBox::warning(0, QString("Hello"), QString("next"));
+}
+
+void Part::slotNCSAFindPrev()
+{
+    QMessageBox::warning(0, QString("Hello"), QString("prev"));
+    
+}
+
+
+//End: added by Haidong Tang
+
 
 bool Part::saveFile()
 {

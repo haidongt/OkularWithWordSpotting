@@ -85,6 +85,10 @@
     <Action name="options_configure_generators" group="configure_merge"/>
     <Action name="options_configure"/>
   </Menu>
+  <Menu name="ncsa"><text>&amp;NCSA</text>
+    <Action name="ncsa_test"/>
+    <Action name="ncsa_find"/>
+  </Menu>
   <Menu name="help"><text>&amp;Help</text>
     <Action name="help_about_backend" group="about_merge"/>
   </Menu>

@@ -64,6 +64,9 @@ class FileKeeper;
 class Reviews;
 class BookmarkList;
 
+
+class NCSAFindBar; // added by Haidong
+
 namespace Okular
 {
 
@@ -149,6 +152,7 @@ class OKULAR_PART_EXPORT Part : public KParts::ReadWritePart, public Okular::Doc
         Q_SCRIPTABLE void slotTogglePresentation();
         Q_SCRIPTABLE Q_NOREPLY void reload();
         Q_SCRIPTABLE Q_NOREPLY void enableStartWithPrint();
+        Q_SCRIPTABLE void slotNCSAFind(); // added by Haidong Tang
 
     signals:
         void enablePrintAction(bool enable);
@@ -213,7 +217,11 @@ class OKULAR_PART_EXPORT Part : public KParts::ReadWritePart, public Okular::Doc
         void updateBookmarksActions();
         void enableTOC(bool enable);
         void slotRebuildBookmarkMenu();
-
+        void slotNCSAFindNext(); //added by Haidong Tang
+        void slotNCSAFindPrev(); //added by Haidong Tang
+        void slotShowNCSAFindBar(); // added by Haidong Tang
+        void slotHideNCSAFindBar(); // added by Haidong Tang
+        void ncsaTestSlot();        //added by Haidong Tang
     public slots:
         // connected to Shell action (and browserExtension), not local one
         void slotPrint();
@@ -264,6 +272,8 @@ class OKULAR_PART_EXPORT Part : public KParts::ReadWritePart, public Okular::Doc
         QPointer<PageSizeLabel> m_pageSizeLabel;
         QPointer<Reviews> m_reviewsWidget;
         QPointer<BookmarkList> m_bookmarkList;
+               
+        NCSAFindBar * m_ncsaFindBar; // added by Haidong
 
         // document watcher (and reloader) variables
         KDirWatch *m_watcher;
@@ -306,6 +316,9 @@ class OKULAR_PART_EXPORT Part : public KParts::ReadWritePart, public Okular::Doc
         QAction *m_exportAsText;
         QAction *m_exportAsDocArchive;
         KAction *m_showPresentation;
+        KAction *m_ncsaFind;//added by Haidong Tang
+        KAction *m_ncsaFindNext;//added by Haidong Tang
+        KAction *m_ncsaFindPrev;//added by Haidong Tang
         KToggleAction* m_showMenuBarAction;
         KToggleAction* m_showLeftPanel;
         KToggleAction* m_showBottomBar;
@@ -314,7 +327,8 @@ class OKULAR_PART_EXPORT Part : public KParts::ReadWritePart, public Okular::Doc
         KAction *m_reload;
         QMenu *m_exportAsMenu;
         KAction *m_closeFindBar;
-
+        KAction *m_closeNCSAFindBar; // added by Haidong Tang
+        
         bool m_actionsSearched;
         BrowserExtension *m_bExtension;
 
