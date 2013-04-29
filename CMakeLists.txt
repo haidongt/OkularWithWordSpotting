@@ -202,6 +202,13 @@ qt4_add_dbus_interfaces(okularpart_SRCS ${KDE4_DBUS_INTERFACES_DIR}/org.kde.KSpe
 kde4_add_plugin(okularpart ${okularpart_SRCS})
 
 #begin added by Haidong Tang
+find_library(POPPLER_LIBRARY 
+    NAMES poppler
+    PATHS 
+    /opt/local/lib/
+    /usr/local/lib/
+    /usr/lib
+    )
 find_library(TESSERACT_LIBRARY 
     NAMES tesseract
     PATHS 
@@ -211,25 +218,19 @@ find_library(TESSERACT_LIBRARY
     )
     
 find_library(LEPTONICA_LIBRARY 
-    NAMES lepto
+    NAMES lept
     PATHS 
     /opt/local/lib/
     /usr/local/lib/
     /usr/lib
     )
    
-find_library(POPPLER_QT4_LIBRARY 
-    NAMES poppler
-    PATHS 
-    /opt/local/lib/
-    /usr/local/lib/
-    /usr/lib
-    )
+
 
 #end added by Haidong Tang
 
 
-target_link_libraries(okularpart okularcore ${KDE4_KPARTS_LIBS} ${KDE4_KPRINTUTILS_LIBS} ${MATH_LIB} ${QIMAGEBLITZ_LIBRARIES} ${KDE4_PHONON_LIBRARY} ${KDE4_SOLID_LIBRARY} ${TESSERACT_LIBRARY} ${LEPTONICA_LIBRARY} ${POPPLER_QT4_LIBRARY})#added tesseract, leptonica and poppler libraries by Haidong Tang
+target_link_libraries(okularpart okularcore ${KDE4_KPARTS_LIBS} ${KDE4_KPRINTUTILS_LIBS} ${MATH_LIB} ${QIMAGEBLITZ_LIBRARIES} ${KDE4_PHONON_LIBRARY} ${KDE4_SOLID_LIBRARY} ${TESSERACT_LIBRARY} ${LEPTONICA_LIBRARY} ${POPPLER_LIBRARY})#added tesseract, leptonica and poppler libraries by Haidong Tang
 
 install(TARGETS okularpart DESTINATION ${PLUGIN_INSTALL_DIR})
 

@@ -237,8 +237,9 @@ void NCSAFindBar::sendRequest(const Okular::Page *page, int width, int height)
    
    else
    {
-     qDebug() << "Images ready";
      /*
+     qDebug() << "Images ready";
+     
      qDebug() << "Images ready";
      const QPixmap *pixmap = NULL;
      pixmap = page->_o_nearestPixmap(NCSAFindBar::OKULAR_OBSERVER_ID, -1, -1);
