@@ -21,6 +21,7 @@
 
 NCSASignatureComparator::NCSASignatureComparator()
 {
+
 }
 NCSASignatureComparator::~NCSASignatureComparator()
 {
@@ -51,13 +52,16 @@ double NCSASignatureComparator::distance(vector<double> * vec1, vector<double> *
   
 NCSAWordSpottingUtil::NCSAWordSpottingUtil()
 {
+     wordList = new vector<NCSAWordInfo*>();
 }
 
 NCSAWordSpottingUtil::~NCSAWordSpottingUtil()
 {
+    delete wordList;
 }
 
-PIX* NCSAWordSpottingUtil::qImage2PIX(QImage& qImage) {
+PIX* NCSAWordSpottingUtil::qImage2PIX(const QImage& originalImage) {
+  QImage qImage(originalImage);
   PIX * pixs;
   l_uint32 *lines;
 
@@ -82,15 +86,12 @@ PIX* NCSAWordSpottingUtil::qImage2PIX(QImage& qImage) {
   return pixEndianByteSwapNew(pixs);
 }
 
-void NCSAWordSpottingUtil::addPage(const QPixmap& page, int pagenum)
+void NCSAWordSpottingUtil::addPage(const QImage& page, int pagenum)
 {
-  
-	qDebug() << "In the new class now";
-
-    page.save("/home/htang14/Desktop/okularoutput/12345.png");
-    
-    QImage img = page.toImage();
-    PIX* pix = qImage2PIX(img);
+    qDebug() << pagenum;
+    page.save("/home/htang14/Desktop/okularoutput/bag1/aaa.jpg");
+    pageImgs.push_back(page);
+    PIX* pix = qImage2PIX(page);
     
     tesseract::TessBaseAPI tess;
     tess.Init(NULL, "eng");
@@ -107,7 +108,6 @@ void NCSAWordSpottingUtil::addPage(const QPixmap& page, int pagenum)
     Boxa* boxa = tess.GetWords(NULL);
     Box** boxes = boxa->box;
     
-    wordList = new vector<NCSAWordInfo*>();
     for(int i = 0; i < boxa->n; i++)
     {
       PIX* word = pixClipRectangle(pix, boxes[i], NULL); 
@@ -116,34 +116,25 @@ void NCSAWordSpottingUtil::addPage(const QPixmap& page, int pagenum)
       word_info->box = boxes[i];
       word_info->signature = signature;
       word_info->pagenum = pagenum;
+      word_info->page = &(pageImgs.back());
       wordList->push_back(word_info);
-     
-
-      /*
+      
       std::stringstream ss;
-      ss << "/home/htang14/Desktop/okularoutput/bag/" << i << ".jpg";
+      ss << "/home/htang14/Desktop/okularoutput/bag1/" << i << ".jpg";
       pixWrite(ss.str().c_str(), word, IFF_DEFAULT);
-      break;
-      */
+     
     }
-    qDebug()<<"list size:" << wordList->size();
-    //Pix* pixout = pixDrawBoxa(pix,boxa,1,0xaaaaaa);
-    
-    //pixWrite("/home/htang14/Desktop/okularoutput/123456.jpg", pixout, IFF_DEFAULT);
-    //painter_->getPagePixmap(page);
   
 }
 
-vector<vector<double> > NCSAWordSpottingUtil::search(const QPixmap& img)
+vector<NCSAWordInfo*> NCSAWordSpottingUtil::search(const QPixmap& img, int maxDisplay)
 {
     QImage img_QImage = img.toImage();
     PIX* pix = qImage2PIX(img_QImage);
-    qDebug()<<"attention please";
     vector<double> * signature = pix2signature(pix);
-    qDebug()<<"stop attention";
     std::ofstream datacheck;
     datacheck.open("/home/htang14/Desktop/okularoutput/datacheck.txt");
-    
+
     outputVec2File(datacheck, signature);
     
     for(int i = 0; i < wordList->size(); i++)
@@ -154,7 +145,7 @@ vector<vector<double> > NCSAWordSpottingUtil::search(const QPixmap& img)
         
     std::set<NCSAWordInfo*, NCSASignatureComparator> wordSet;
     std::set<NCSAWordInfo*, NCSASignatureComparator>::iterator iter;
-    
+
     for(int i = 0; i < wordList->size(); i++)
     {
       NCSAWordInfo* info = wordList->at(i);
@@ -163,22 +154,23 @@ vector<vector<double> > NCSAWordSpottingUtil::search(const QPixmap& img)
       
       wordSet.insert(info);
     }
-    
-    vector<vector<double> > output;
+
+    vector<NCSAWordInfo*> output;
     
     
     int count = 0;
-    for(iter = wordSet.begin(); iter != wordSet.end() || count < 10; iter++)
+    for(iter = wordSet.begin(); iter != wordSet.end() ; iter++)
     {
       count++;
-      vector<double> rectangle;
-      rectangle.push_back((*iter)->box->x);
-      rectangle.push_back((*iter)->box->y);
-      rectangle.push_back((*iter)->box->w);
-      rectangle.push_back((*iter)->box->h);
-      output.push_back(rectangle);
-      //qDebug() << (*iter)->index;
+      output.push_back(*iter);
+      
+      if(count >= maxDisplay)
+      {
+	break;
+      }
+      
     }
+
     return output;
 }
 

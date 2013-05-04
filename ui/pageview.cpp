@@ -673,6 +673,36 @@ void PageView::openAnnotationWindow( Okular::Annotation * annotation, int pageNu
     existWindow->show();
 }
 
+//begin: added by Haidong Tang
+void PageView::ncsaSearchResultDisplay(int pageNum, double x, double y, double w, double h)
+{
+    qDebug () << "slot receives:" << pageNum << x << y << w << h;
+    QPoint point;
+    point.setX(50);
+    point.setY(2000);
+    //scrollPosIntoView(point);
+    //verticalScrollBar()->setValue(517);
+    qDebug()<< verticalScrollBar()->maximum() << contentAreaPosition() << contentAreaHeight() << viewport()->height();
+    
+    viewport()->update();
+    /*
+    d->dragScrollVector.setY(1000);
+    if (d->dragScrollVector != QPoint(0, 0))
+    {
+        d->dragScrollTimer.setSingleShot(true);
+        if (!d->dragScrollTimer.isActive()) d->dragScrollTimer.start(0);
+    }*/
+    //scrollContentsBy(0,500);
+    //QPoint point;
+    //QColor color;
+    //point.setX(50);
+    //point.setY(200);
+    //selectionStart( point, QColor(100,100,100));
+    //updateSelection(QPoint(500,500));
+
+}
+//end: added by Haidong Tang
+
 void PageView::slotAnnotationWindowDestroyed( QObject * window )
 {
     QHash< Okular::Annotation*, AnnotWindow * >::Iterator it = d->m_annowindows.begin();
@@ -1549,8 +1579,66 @@ void PageView::paintEvent(QPaintEvent *pe)
                     screenPainter.drawRect( contentsRect );
                 }
             }
+            
         }
+        drawWordSpottingResultOnPainter( contentsRect, &screenPainter );
+        //begin: added by Haidong Tang
+        /*
+        QPainter painter(viewport());
+        painter.setBrush(QBrush(Qt::black));
+        painter.drawRect(100, 100, 1000, 1000);
+        */
+    //end: added by Haidong Tang
 }
+
+
+void PageView::drawWordSpottingResultOnPainter( const QRect & contentsRect, QPainter * p )
+{
+    QColor backColor = viewport()->palette().color( QPalette::Dark );
+
+    // when checking if an Item is contained in contentsRect, instead of
+    // growing PageViewItems rects (for keeping outline into account), we
+    // grow the contentsRect
+    QRect checkRect = contentsRect;
+    checkRect.adjust( -3, -3, 1, 1 );
+
+    // create a region from which we'll subtract painted rects
+    QRegion remainingArea( contentsRect );
+
+    // iterate over all items painting the ones intersecting contentsRect
+    QVector< PageViewItem * >::const_iterator iIt = d->items.constBegin(), iEnd = d->items.constEnd();
+    for ( ; iIt != iEnd; ++iIt )
+    {
+        
+      
+        // check if a piece of the page intersects the contents rect
+        //if ( !(*iIt)->isVisible() || !(*iIt)->croppedGeometry().intersects( checkRect ) )
+        //    continue;
+
+        // get item and item's outline geometries
+        PageViewItem * item = *iIt;
+        if (item->pageNumber() == 1) continue;
+        QRect itemGeometry = item->croppedGeometry(),
+        outlineGeometry = itemGeometry;
+        outlineGeometry.adjust( -1, -1, 3, 3 );
+
+        // move the painter to the top-left corner of the real page
+        p->save();
+        p->translate( itemGeometry.left(), itemGeometry.top() );
+        qDebug() << itemGeometry;
+        //QRect pixmapRect = contentsRect.intersect( itemGeometry );
+        QRect pixmapRect(3,6,itemGeometry.width(),itemGeometry.height());
+        p->setPen(Qt::transparent);
+        p->setBrush(QBrush(Qt::red));
+        pixmapRect.translate( -item->croppedGeometry().topLeft() );
+
+        p->drawRect(pixmapRect);
+        qDebug() << pixmapRect << itemGeometry << item->croppedGeometry().topLeft();
+        p->restore();
+    }
+
+}
+
 
 void PageView::drawTableDividers(QPainter * screenPainter)
 {
@@ -2324,7 +2412,7 @@ void PageView::mouseReleaseEvent( QMouseEvent * e )
                     {
                         // handle click over a image
                     }
-/*		Enrico and me have decided this is not worth the trouble it generates
+/*              Enrico and me have decided this is not worth the trouble it generates
                     else
                     {
                         // if not on a rect, the click selects the page
@@ -3236,6 +3324,7 @@ void PageView::drawDocumentOnPainter( const QRect & contentsRect, QPainter * p )
             PagePainter::paintCroppedPageOnPainter( p, item->page(), this, pageflags,
                 item->uncroppedWidth(), item->uncroppedHeight(), pixmapRect,
                 item->crop(), viewPortPoint );
+            
         }
 
         // remove painted area from 'remainingArea' and restore painter

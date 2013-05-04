@@ -26,6 +26,7 @@ public:
   int pagenum;
   vector<double> * target;
   int index;
+  QImage* page;
 };
 
 class NCSASignatureComparator
@@ -46,17 +47,17 @@ class NCSAWordSpottingUtil
     public:
         NCSAWordSpottingUtil();
         ~NCSAWordSpottingUtil();
-	void addPage(const QPixmap& page, int pagenum);
-	vector<vector<double> > search(const QPixmap& img);
+	void addPage(const QImage& page, int pagenum);
+	vector<NCSAWordInfo*> search(const QPixmap& img, int maxDisplay);
     private:
-	PIX* qImage2PIX(QImage& qImage);
+	PIX* qImage2PIX(const QImage& qImage);
 	vector<double> * getSignature_Dimensions(double image[], int w, int h);
 	double* dct(double* f, int length, int n);
 	vector<double> * pix2signature(PIX* img);
 	vector<NCSAWordInfo*> *wordList;
 	
 	void outputVec2File(std::ofstream &datacheck, vector<double> * signature );
-
+	vector<QImage> pageImgs;
 
 };
 

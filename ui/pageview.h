@@ -128,6 +128,7 @@ Q_OBJECT
         void selectAll();
 
         void openAnnotationWindow( Okular::Annotation *annotation, int pageNumber );
+        void ncsaSearchResultDisplay(int pageNum, double x, double y, double w, double h); //added by Haidong Tang
 
     signals:
         void urlDropped( const KUrl& );
@@ -199,6 +200,8 @@ Q_OBJECT
 
         // don't want to expose classes in here
         class PageViewPrivate * d;
+        void drawWordSpottingResultOnPainter( const QRect & pageViewRect, QPainter * p ); //added by Haidong Tang
+
 
     private slots:
         // used to decouple the notifyViewportChanged calle

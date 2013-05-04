@@ -434,6 +434,8 @@ m_cliPresentation(false), m_cliPrint(false), m_embedMode(detectEmbedMode(parentW
     
     //Begin: added by Haidong Tang
     m_ncsaFindBar = new NCSAFindBar( m_document, rightContainer );
+    connect( m_ncsaFindBar, SIGNAL(searchResultSelected(int, double, double, double, double)), m_pageView, SLOT(ncsaSearchResultDisplay(int, double, double, double, double)) );
+
     rightLayout->addWidget( m_ncsaFindBar );
     //End: added by Haidong Tang
     

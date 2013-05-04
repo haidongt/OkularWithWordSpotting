@@ -51,7 +51,7 @@ class NCSAFindBar
         void notifyPageChanged(int page, int flags);
 
     signals:
-        void forwardKeyPressEvent( QKeyEvent* );
+        void searchResultSelected(int pageNum, double x, double y, double w, double h);
 
     //public slots:
         //void findNext();
