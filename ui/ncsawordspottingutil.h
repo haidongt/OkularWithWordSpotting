@@ -27,6 +27,8 @@ public:
   vector<double> * target;
   int index;
   QImage* page;
+  int width;
+  int height;
 };
 
 class NCSASignatureComparator

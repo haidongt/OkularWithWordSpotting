@@ -65,6 +65,7 @@ class NCSAFindBar
 	void changeFont(int index);
 	void searchLineTextChanged(QString text);
 	void performSearch();
+	void resultComboBoxIndexChanged(int index);
 
     private:
         Okular::Document * doc;
@@ -81,6 +82,7 @@ class NCSAFindBar
 	
 	void sendRequest(const Okular::Page *page, int width, int height);
 	QString getFilePath();
+	vector<NCSAWordInfo*> searchResult;
 	
 };
 

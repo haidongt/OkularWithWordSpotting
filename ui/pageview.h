@@ -163,6 +163,10 @@ Q_OBJECT
         void scrollContentsBy( int dx, int dy );
 
     private:
+        int ncsaSelectedWordPageNum;//added by Haidong Tang
+        QRectF ncsaSeletedWord;//added by Haidong Tang
+        bool ncsaShouldHighlightWord;//added by Haidong Tang
+        
         // draw background and items on the opened qpainter
         void drawDocumentOnPainter( const QRect & pageViewRect, QPainter * p );
         // update item width and height using current zoom parameters

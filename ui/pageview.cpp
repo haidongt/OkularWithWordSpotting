@@ -350,6 +350,9 @@ PageView::PageView( QWidget *parent, Okular::Document *document )
     setAttribute( Qt::WA_StaticContents );
 
     setObjectName( QLatin1String( "okular::pageView" ) );
+    
+    this->ncsaShouldHighlightWord = false; //added by Haidong Tang
+
 
     // viewport setup: setup focus, accept drops and track mouse
     viewport()->setFocusProxy( this );
@@ -677,15 +680,26 @@ void PageView::openAnnotationWindow( Okular::Annotation * annotation, int pageNu
 void PageView::ncsaSearchResultDisplay(int pageNum, double x, double y, double w, double h)
 {
     qDebug () << "slot receives:" << pageNum << x << y << w << h;
+    this->ncsaSelectedWordPageNum = pageNum;
+    this->ncsaSeletedWord.setX(x);
+    this->ncsaSeletedWord.setY(y);
+    this->ncsaSeletedWord.setWidth(w);
+    this->ncsaSeletedWord.setHeight(h);
+    this->ncsaShouldHighlightWord = true;
+    viewport()->update();
+
+    /*
+    qDebug()<< "just get in" << this->ncsaSeletedWord ;
     QPoint point;
     point.setX(50);
     point.setY(2000);
     //scrollPosIntoView(point);
-    //verticalScrollBar()->setValue(517);
+    
+    
     qDebug()<< verticalScrollBar()->maximum() << contentAreaPosition() << contentAreaHeight() << viewport()->height();
     
-    viewport()->update();
-    /*
+    
+    
     d->dragScrollVector.setY(1000);
     if (d->dragScrollVector != QPoint(0, 0))
     {
@@ -1594,6 +1608,10 @@ void PageView::paintEvent(QPaintEvent *pe)
 
 void PageView::drawWordSpottingResultOnPainter( const QRect & contentsRect, QPainter * p )
 {
+    if(!this->ncsaShouldHighlightWord)
+    {
+        return;
+    }
     QColor backColor = viewport()->palette().color( QPalette::Dark );
 
     // when checking if an Item is contained in contentsRect, instead of
@@ -1610,14 +1628,11 @@ void PageView::drawWordSpottingResultOnPainter( const QRect & contentsRect, QPai
     for ( ; iIt != iEnd; ++iIt )
     {
         
-      
-        // check if a piece of the page intersects the contents rect
-        //if ( !(*iIt)->isVisible() || !(*iIt)->croppedGeometry().intersects( checkRect ) )
-        //    continue;
-
-        // get item and item's outline geometries
         PageViewItem * item = *iIt;
-        if (item->pageNumber() == 1) continue;
+        if(item->pageNumber() != this->ncsaSelectedWordPageNum)
+        {
+            continue;
+        }
         QRect itemGeometry = item->croppedGeometry(),
         outlineGeometry = itemGeometry;
         outlineGeometry.adjust( -1, -1, 3, 3 );
@@ -1625,18 +1640,21 @@ void PageView::drawWordSpottingResultOnPainter( const QRect & contentsRect, QPai
         // move the painter to the top-left corner of the real page
         p->save();
         p->translate( itemGeometry.left(), itemGeometry.top() );
-        qDebug() << itemGeometry;
         //QRect pixmapRect = contentsRect.intersect( itemGeometry );
-        QRect pixmapRect(3,6,itemGeometry.width(),itemGeometry.height());
-        p->setPen(Qt::transparent);
-        p->setBrush(QBrush(Qt::red));
-        pixmapRect.translate( -item->croppedGeometry().topLeft() );
-
+        //QRect pixmapRect(0,0,itemGeometry.width(),itemGeometry.height());
+        QRect pixmapRect(itemGeometry.width() * this->ncsaSeletedWord.x(),
+                         itemGeometry.height() * this->ncsaSeletedWord.y(),
+                         itemGeometry.width() * this->ncsaSeletedWord.width(),
+                         itemGeometry.height() * this->ncsaSeletedWord.height());
+                         
+        p->setPen(Qt::green);
+        p->setCompositionMode(QPainter::CompositionMode_Difference);
+        p->setBrush(QBrush(Qt::blue));
         p->drawRect(pixmapRect);
         qDebug() << pixmapRect << itemGeometry << item->croppedGeometry().topLeft();
         p->restore();
+        //verticalScrollBar()->setValue(itemGeometry.top() + itemGeometry.height() * this->ncsaSeletedWord.y());
     }
-
 }
 
 

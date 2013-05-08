@@ -120,6 +120,7 @@ NCSAFindBar::NCSAFindBar( Okular::Document * document, QWidget * parent )
     fontComboBox->addItems(fonts);
     lay->addWidget(fontComboBox);
     connect( fontComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFont(int)) );
+    connect( resultComboBox, SIGNAL(highlighted(int)), this, SLOT(resultComboBoxIndexChanged(int)) );
 
     QPalette p(palette());
     p.setColor(QPalette::Background, Qt::white);
@@ -203,8 +204,6 @@ QString NCSAFindBar::getFilePath()
 //send request for page pixmap
 void NCSAFindBar::sendRequest(const Okular::Page *page, int width, int height)
 {
-  
-   emit searchResultSelected(1,9,8,9,0);
 
    QString filepath =  getFilePath();
    Poppler::Document *pdf = Poppler::Document::load(filepath);  
@@ -225,63 +224,59 @@ void NCSAFindBar::sendRequest(const Okular::Page *page, int width, int height)
      QPixmap search_input(display->size());
      display->render(&search_input);     
      
-     vector<NCSAWordInfo*> result = wordSpottingUtil.search(search_input, 10);
+     searchResult = wordSpottingUtil.search(search_input, 10);
      
-     qDebug() << int(result.size());
+     
+     
+     
+     ////////displaying results
      resultComboBox->clear();
-     for(int i = 0; i < result.size(); i++)
+     for(int i = 0; i < searchResult.size(); i++)
      {
-       NCSAWordInfo* wordInfo = result[i];
+       NCSAWordInfo* wordInfo = searchResult[i];
        QImage returnedPage = pdf->page(wordInfo->pagenum)->renderToImage(150,150);
        const QImage word = returnedPage.copy(wordInfo->box->x, wordInfo->box->y, wordInfo->box->w, wordInfo->box->h);
 
        resultComboBox->addItem(QPixmap::fromImage(word), "", -1);
+       returnedPage.height();
+       returnedPage.width();
+       
+       /*if(i == 0)
+       {
+	   emit searchResultSelected(wordInfo->pagenum,
+				     wordInfo->box->x * 1.0 / returnedPage.width(), 
+				     wordInfo->box->y * 1.0 / returnedPage.height(), 
+			             wordInfo->box->w * 1.0 / returnedPage.width(), 
+			             wordInfo->box->h * 1.0 / returnedPage.height());
+       }*/
 
      }
+     
      
      
      QSize size(100,30);
      resultComboBox->setIconSize(size);
      
-  
-  /*
-   QImage page_img = page1->renderToImage();
-   page_img.save("/home/htang14/test_img.jpg");
-   
-   
-   Poppler::Page *page2 = pdf->page(10);
-   QImage page_img2 = page2->renderToImage(150,150);
-   page_img2.save("/home/htang14/test_img1.jpg");
-      
-   qDebug() << "has pixmap:" << page->hasPixmap(this);
-  */
-   
-     /*
-     qDebug() << "Images ready";
-     
-     qDebug() << "Images ready";
-     const QPixmap *pixmap = NULL;
-     pixmap = page->_o_nearestPixmap(NCSAFindBar::OKULAR_OBSERVER_ID, -1, -1);
 
      
-     */
-     
-    
-    //qDebug() << "PagePainter::sendRequest";
-    //if(false == page->hasPixmap(99)) {
-    //  qDebug() << "making pixmap request";
-    //Okular::PixmapRequest *pixmapRequest = new Okular::PixmapRequest(OkularDocument::OKULAR_OBSERVER_ID, page->number(), width, height, 0, true);//asynchronous request (the request is deleted by okular core library)
-    //  req_.clear();
-    //  req_.push_back(pixmapRequest);
-    //  doc_->requestPixmaps(req_);
-    //}
-    
     
 }
   
 void NCSAFindBar::notifyPageChanged(int page, int flags)
 {
   qDebug() << "request callback";
+}
+
+void NCSAFindBar::resultComboBoxIndexChanged(int index)
+{
+       NCSAWordInfo* wordInfo = searchResult[index];
+       emit searchResultSelected(wordInfo->pagenum,
+				     wordInfo->box->x * 1.0 / wordInfo->width, 
+				     wordInfo->box->y * 1.0 / wordInfo->height, 
+			             wordInfo->box->w * 1.0 / wordInfo->width, 
+			             wordInfo->box->h * 1.0 / wordInfo->height);
+
+
 }
 
 void NCSAFindBar::performSearch()

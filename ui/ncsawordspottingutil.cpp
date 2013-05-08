@@ -117,6 +117,8 @@ void NCSAWordSpottingUtil::addPage(const QImage& page, int pagenum)
       word_info->signature = signature;
       word_info->pagenum = pagenum;
       word_info->page = &(pageImgs.back());
+      word_info->width = page.width();
+      word_info->height = page.height();
       wordList->push_back(word_info);
       
       std::stringstream ss;
