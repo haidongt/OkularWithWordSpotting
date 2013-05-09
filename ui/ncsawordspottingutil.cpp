@@ -86,6 +86,50 @@ PIX* NCSAWordSpottingUtil::qImage2PIX(const QImage& originalImage) {
   return pixEndianByteSwapNew(pixs);
 }
 
+QImage NCSAWordSpottingUtil::PIX2QImage(PIX *pixImage) {
+  int width = pixGetWidth(pixImage);
+  int height = pixGetHeight(pixImage);
+  int depth = pixGetDepth(pixImage);
+  int bytesPerLine = pixGetWpl(pixImage) * 4;
+  l_uint32 * s_data = pixGetData(pixEndianByteSwapNew(pixImage));
+
+  QImage::Format format;
+  if (depth == 1)
+    format = QImage::Format_Mono;
+  else if (depth == 8)
+    format = QImage::Format_Indexed8;
+  else
+    format = QImage::Format_RGB32;
+
+  QImage result((uchar*)s_data, width, height, bytesPerLine, format);
+
+  // Handle pallete
+  QVector<QRgb> _bwCT;
+  _bwCT.append(qRgb(255,255,255));
+  _bwCT.append(qRgb(0,0,0));
+
+  QVector<QRgb> _grayscaleCT(256);
+  for (int i = 0; i < 256; i++)  {
+    _grayscaleCT.append(qRgb(i, i, i));
+  }
+  if (depth == 1) {
+    result.setColorTable(_bwCT);
+  }  else if (depth == 8)  {
+    result.setColorTable(_grayscaleCT);
+
+  } else {
+    result.setColorTable(_grayscaleCT);
+  }
+
+  if (result.isNull()) {
+    static QImage none(0,0,QImage::Format_Invalid);
+    qDebug() << "***Invalid format!!!";
+    return none;
+  }
+
+  return result.rgbSwapped();
+}
+
 void NCSAWordSpottingUtil::addPage(const QImage& page, int pagenum)
 {
     pageImgs.push_back(page);

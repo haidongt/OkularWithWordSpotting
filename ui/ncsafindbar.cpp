@@ -30,12 +30,16 @@
 #include <QPainter>
 
 #include <core/generator.h>
-
-
-    
+#include <tesseract/baseapi.h>
 
 #include <kmessagebox.h>
 
+void ImageLabel::mousePressEvent(QMouseEvent * e)
+{
+  QLabel::mousePressEvent(e);
+  emit clicked(e->pos());
+}
+    
 BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
 {
 
@@ -46,25 +50,37 @@ BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
     connect(closeButton, SIGNAL(clicked()), this, SLOT(close()));
     connect(confirmButton, SIGNAL(clicked()), this, SLOT(testFun()));
     
-    imageLabel = new QLabel;
+    imageLabel = new ImageLabel;
     imageLabel->setBackgroundRole(QPalette::Base);
     imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     imageLabel->setScaledContents(true);
     scrollArea = new QScrollArea;
     scrollArea->setBackgroundRole(QPalette::Dark);
     scrollArea->setWidget(imageLabel);
+    connect(imageLabel, SIGNAL(clicked(const QPoint & )), this, SLOT(pickLetter(const QPoint & )));
     
     QPushButton *previousButton = new QPushButton(tr("Previous"));
     QPushButton *nextButton = new QPushButton(tr("Next"));
     connect(previousButton, SIGNAL(clicked()), this, SLOT(goPrevious()));
     connect(nextButton, SIGNAL(clicked()), this, SLOT(goNext()));
     pageIndicator = new QLabel;
+    QRadioButton *displayOriginal = new QRadioButton(tr("Original"));
+    QRadioButton *displayBoxed = new QRadioButton(tr("Boxed"));
+    isBoxedDisplay.addButton(displayOriginal);
+    isBoxedDisplay.addButton(displayBoxed);
+    displayOriginal->setChecked(true);
+
+    connect(displayOriginal, SIGNAL(clicked()), this, SLOT(displayOriginalPage()));
+    connect(displayBoxed, SIGNAL(clicked()), this, SLOT(displayBoxedPage()));
 
     QHBoxLayout *pageNavigationLayout = new QHBoxLayout;
     pageNavigationLayout->addStretch();
     pageNavigationLayout->addWidget(previousButton);
     pageNavigationLayout->addWidget(pageIndicator);
     pageNavigationLayout->addWidget(nextButton);
+    pageNavigationLayout->addStretch();
+    pageNavigationLayout->addWidget(displayOriginal);
+    pageNavigationLayout->addWidget(displayBoxed);
     pageNavigationLayout->addStretch();
     
     
@@ -230,17 +246,63 @@ void BuildFontDialog::goNext()
 
 }
 
+void BuildFontDialog::displayOriginalPage()
+{
+  imageLabel->setPixmap(QPixmap::fromImage(originalPage));
+  imageLabel->adjustSize();
+}
+void BuildFontDialog::displayBoxedPage()
+{
+  imageLabel->setPixmap(QPixmap::fromImage(boxedPage));
+  imageLabel->adjustSize();
+}
 void BuildFontDialog::displayPage()
 {
-  QImage page = doc->page(currentPage)->renderToImage(150, 150);
-  imageLabel->setPixmap(QPixmap::fromImage(page));
+  originalPage = doc->page(currentPage)->renderToImage(150, 150);
+  PIX* pix  = NCSAWordSpottingUtil::qImage2PIX(originalPage);
+  
+  tesseract::TessBaseAPI tess;
+    tess.Init(NULL, "eng");
+    
+    tess.SetImage(pix);
+
+    tess.Recognize(NULL);
+    tesseract::ResultIterator* ri = tess.GetIterator();
+    tesseract::ChoiceIterator* ci;
+    
+    boxedPage = originalPage.copy();
+    QPainter p;
+    p.begin(&boxedPage);
+    p.setPen(Qt::red);
+    if(ri != NULL)
+    {
+      do
+      {
+	int left, top, right, bottom;
+	ri->BoundingBox(tesseract::RIL_SYMBOL, &left, &top, &right, &bottom);
+	p.drawRect(QRect(left, top, right-left, bottom-top));
+      }
+      while(ri->Next(tesseract::RIL_SYMBOL));
+    }
+    p.end();
+      
+  
+  imageLabel->setPixmap(QPixmap::fromImage(originalPage));
   imageLabel->adjustSize();
   QString pageText;
   pageText.append(QString::number(currentPage+1));
   pageText.append("/");
   pageText.append(QString::number(doc->numPages()));
   pageIndicator->setText(pageText);
+  
+  isBoxedDisplay.checkedButton()->click();
 
+
+}
+
+void BuildFontDialog::pickLetter(const QPoint & p)
+{
+  qDebug() << p;
 }
 
 

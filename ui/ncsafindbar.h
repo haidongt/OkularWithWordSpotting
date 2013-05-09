@@ -41,6 +41,16 @@ class Document;
 #include <vector>
 #include <QLabel>
 #include <QRadioButton>
+
+class ImageLabel : public QLabel
+{
+    Q_OBJECT
+protected:
+  void mousePressEvent(QMouseEvent * e);
+signals:
+  void clicked(const QPoint & pos);
+};
+
 class BuildFontDialog:public QDialog
 {
   Q_OBJECT
@@ -52,14 +62,20 @@ public slots:
     void goPrevious();
     void goNext();
     void testFun();
+    void displayOriginalPage();
+    void displayBoxedPage();
+    void pickLetter(const QPoint & p);
+
 
 private:
 
     QListWidget *contentsWidget;
     QStackedWidget *pagesWidget;
     QScrollArea * scrollArea;
-    QLabel * imageLabel;
+    ImageLabel * imageLabel;
     QLabel * pageIndicator;
+    QImage originalPage;
+    QImage boxedPage;
 
     Poppler::Document *doc;
     int currentPage;
@@ -67,6 +83,7 @@ private:
     void displayPage();
     void createLetters(QHBoxLayout *lowerCases, QHBoxLayout *upperCases);
     QButtonGroup *buttonGroup;
+    QButtonGroup isBoxedDisplay;
     std::map<QAbstractButton*, QLabel*> radio2label;
 
 };

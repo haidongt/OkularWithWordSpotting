@@ -51,8 +51,10 @@ class NCSAWordSpottingUtil
         ~NCSAWordSpottingUtil();
 	void addPage(const QImage& page, int pagenum);
 	vector<NCSAWordInfo*> search(const QPixmap& img, int maxDisplay);
+	static PIX* qImage2PIX(const QImage& qImage);
+	static QImage PIX2QImage(PIX *pixImage);
     private:
-	PIX* qImage2PIX(const QImage& qImage);
+	
 	vector<double> * getSignature_Dimensions(double image[], int w, int h);
 	double* dct(double* f, int length, int n);
 	vector<double> * pix2signature(PIX* img);
