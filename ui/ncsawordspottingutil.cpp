@@ -88,8 +88,6 @@ PIX* NCSAWordSpottingUtil::qImage2PIX(const QImage& originalImage) {
 
 void NCSAWordSpottingUtil::addPage(const QImage& page, int pagenum)
 {
-    qDebug() << pagenum;
-    page.save("/home/htang14/Desktop/okularoutput/bag1/aaa.jpg");
     pageImgs.push_back(page);
     PIX* pix = qImage2PIX(page);
     
@@ -134,22 +132,26 @@ vector<NCSAWordInfo*> NCSAWordSpottingUtil::search(const QPixmap& img, int maxDi
     QImage img_QImage = img.toImage();
     PIX* pix = qImage2PIX(img_QImage);
     vector<double> * signature = pix2signature(pix);
+    
+
+    /* only for debugging purpose
     std::ofstream datacheck;
     datacheck.open("/home/htang14/Desktop/okularoutput/datacheck.txt");
-
     outputVec2File(datacheck, signature);
-    
     for(int i = 0; i < wordList->size(); i++)
     {
       outputVec2File(datacheck, wordList->at(i)->signature);
     }
     datacheck.close();
+    */
+    
         
     std::set<NCSAWordInfo*, NCSASignatureComparator> wordSet;
     std::set<NCSAWordInfo*, NCSASignatureComparator>::iterator iter;
 
     for(int i = 0; i < wordList->size(); i++)
     {
+      qDebug() << i ;
       NCSAWordInfo* info = wordList->at(i);
       info->target = signature;
       info->index = i;
@@ -165,12 +167,10 @@ vector<NCSAWordInfo*> NCSAWordSpottingUtil::search(const QPixmap& img, int maxDi
     {
       count++;
       output.push_back(*iter);
-      
       if(count >= maxDisplay)
       {
 	break;
       }
-      
     }
 
     return output;

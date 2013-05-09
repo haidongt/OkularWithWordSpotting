@@ -13,6 +13,8 @@
 #include <qwidget.h>
 #include <QLabel>
 #include <QComboBox>
+#include <QDialog>
+#include <qlayout.h>
 
 #include <core/document.h>
 #include <core/observer.h>
@@ -20,6 +22,7 @@
 #include <leptonica/allheaders.h>
 
 #include "ncsawordspottingutil.h"
+#include <poppler/qt4/poppler-qt4.h>
 
 class QAction;
 class SearchLineWidget;
@@ -27,6 +30,49 @@ class SearchLineWidget;
 namespace Okular {
 class Document;
 }
+
+
+#include <QListWidget>
+#include <QListWidgetItem>
+#include <QStackedWidget>
+#include <QScrollArea>
+#include <QButtonGroup>
+#include <map>
+#include <vector>
+#include <QLabel>
+#include <QRadioButton>
+class BuildFontDialog:public QDialog
+{
+  Q_OBJECT
+
+public:
+    BuildFontDialog(Poppler::Document *pdf);
+
+public slots:
+    void goPrevious();
+    void goNext();
+    void testFun();
+
+private:
+
+    QListWidget *contentsWidget;
+    QStackedWidget *pagesWidget;
+    QScrollArea * scrollArea;
+    QLabel * imageLabel;
+    QLabel * pageIndicator;
+
+    Poppler::Document *doc;
+    int currentPage;
+    
+    void displayPage();
+    void createLetters(QHBoxLayout *lowerCases, QHBoxLayout *upperCases);
+    QButtonGroup *buttonGroup;
+    std::map<QAbstractButton*, QLabel*> radio2label;
+
+};
+
+
+
 
 class NCSAFindBar
     : public QWidget, private Okular::DocumentObserver
@@ -66,6 +112,7 @@ class NCSAFindBar
 	void searchLineTextChanged(QString text);
 	void performSearch();
 	void resultComboBoxIndexChanged(int index);
+	void buildFontAct(bool b);
 
     private:
         Okular::Document * doc;
@@ -80,9 +127,13 @@ class NCSAFindBar
         bool m_active;
 	void saveTempPics();
 	
-	void sendRequest(const Okular::Page *page, int width, int height);
 	QString getFilePath();
 	vector<NCSAWordInfo*> searchResult;
+	NCSAWordSpottingUtil* wordSpottingUtil;
+	
+	void preprocessDocument();
+	QAction *m_buildFontAct;
+
 	
 };
 

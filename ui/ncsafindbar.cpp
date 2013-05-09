@@ -11,7 +11,6 @@
 
 // qt/kde includes
 #include <qlabel.h>
-#include <qlayout.h>
 #include <qmenu.h>
 #include <qtoolbutton.h>
 #include <qevent.h>
@@ -29,13 +28,220 @@
 #include <qcombobox.h>
 #include <QStringList>
 #include <QPainter>
-#include <QLabel>
+
 #include <core/generator.h>
+
+
     
-#include <poppler/qt4/poppler-qt4.h>
 
 #include <kmessagebox.h>
 
+BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
+{
+
+    doc = pdf;
+    currentPage = 0;
+    QPushButton *confirmButton = new QPushButton(tr("OK"));
+    QPushButton *closeButton = new QPushButton(tr("Cancel"));
+    connect(closeButton, SIGNAL(clicked()), this, SLOT(close()));
+    connect(confirmButton, SIGNAL(clicked()), this, SLOT(testFun()));
+    
+    imageLabel = new QLabel;
+    imageLabel->setBackgroundRole(QPalette::Base);
+    imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    imageLabel->setScaledContents(true);
+    scrollArea = new QScrollArea;
+    scrollArea->setBackgroundRole(QPalette::Dark);
+    scrollArea->setWidget(imageLabel);
+    
+    QPushButton *previousButton = new QPushButton(tr("Previous"));
+    QPushButton *nextButton = new QPushButton(tr("Next"));
+    connect(previousButton, SIGNAL(clicked()), this, SLOT(goPrevious()));
+    connect(nextButton, SIGNAL(clicked()), this, SLOT(goNext()));
+    pageIndicator = new QLabel;
+
+    QHBoxLayout *pageNavigationLayout = new QHBoxLayout;
+    pageNavigationLayout->addStretch();
+    pageNavigationLayout->addWidget(previousButton);
+    pageNavigationLayout->addWidget(pageIndicator);
+    pageNavigationLayout->addWidget(nextButton);
+    pageNavigationLayout->addStretch();
+    
+    
+    QHBoxLayout *lowerCases = new QHBoxLayout;
+    QHBoxLayout *upperCases = new QHBoxLayout;
+    buttonGroup= new QButtonGroup;
+    createLetters(lowerCases, upperCases);
+
+    QVBoxLayout *lettersLayout = new QVBoxLayout;
+    lettersLayout->addLayout(lowerCases);
+    lettersLayout->addLayout(upperCases);
+
+    
+    
+    QVBoxLayout *verticalLayout = new QVBoxLayout;
+    verticalLayout->addWidget(scrollArea);
+    verticalLayout->addLayout(pageNavigationLayout);
+    verticalLayout->addLayout(lettersLayout);
+
+
+    QHBoxLayout *buttonsLayout = new QHBoxLayout;
+    buttonsLayout->addStretch(1);
+    buttonsLayout->addWidget(confirmButton);
+    buttonsLayout->addWidget(closeButton);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout;
+    mainLayout->addLayout(verticalLayout);
+    //mainLayout->addStretch(1);
+    //mainLayout->addSpacing(12);
+    mainLayout->addLayout(buttonsLayout);
+    setLayout(mainLayout);
+    resize(1200, 800);
+
+    setWindowTitle(tr("Font Creater"));
+    
+    displayPage();
+}
+
+void BuildFontDialog::testFun()
+{
+  QLabel* label = radio2label[this->buttonGroup->checkedButton()];
+  
+  label->setText("X");
+  
+  QRadioButton *next= (QRadioButton *)(this->buttonGroup->button(this->buttonGroup->id(this->buttonGroup->checkedButton())-1));
+  if(next != NULL)
+  {
+    next->setChecked(true);
+  }
+}
+
+void BuildFontDialog::createLetters(QHBoxLayout *lowerCases, QHBoxLayout *upperCases)
+{
+
+      vector<char*> lowerLetterList;
+      vector<char*> upperLetterList;
+
+      lowerLetterList.push_back("a");
+      lowerLetterList.push_back("b");
+      lowerLetterList.push_back("c");
+      lowerLetterList.push_back("d");
+      lowerLetterList.push_back("e");
+      lowerLetterList.push_back("f");
+      lowerLetterList.push_back("g");
+      lowerLetterList.push_back("h");
+      lowerLetterList.push_back("i");
+      lowerLetterList.push_back("j");
+      lowerLetterList.push_back("k");
+      lowerLetterList.push_back("l");
+      lowerLetterList.push_back("m");
+      lowerLetterList.push_back("n");
+      lowerLetterList.push_back("o");
+      lowerLetterList.push_back("p");
+      lowerLetterList.push_back("q");
+      lowerLetterList.push_back("r");
+      lowerLetterList.push_back("s");
+      lowerLetterList.push_back("t");
+      lowerLetterList.push_back("u");
+      lowerLetterList.push_back("v");
+      lowerLetterList.push_back("w");
+      lowerLetterList.push_back("x");
+      lowerLetterList.push_back("y");
+      lowerLetterList.push_back("z");
+      upperLetterList.push_back("A");
+      upperLetterList.push_back("B");
+      upperLetterList.push_back("C");
+      upperLetterList.push_back("D");
+      upperLetterList.push_back("E");
+      upperLetterList.push_back("F");
+      upperLetterList.push_back("G");
+      upperLetterList.push_back("H");
+      upperLetterList.push_back("I");
+      upperLetterList.push_back("J");
+      upperLetterList.push_back("K");
+      upperLetterList.push_back("L");
+      upperLetterList.push_back("M");
+      upperLetterList.push_back("N");
+      upperLetterList.push_back("O");
+      upperLetterList.push_back("P");
+      upperLetterList.push_back("Q");
+      upperLetterList.push_back("R");
+      upperLetterList.push_back("S");
+      upperLetterList.push_back("T");
+      upperLetterList.push_back("U");
+      upperLetterList.push_back("V");
+      upperLetterList.push_back("W");
+      upperLetterList.push_back("X");
+      upperLetterList.push_back("Y");
+      upperLetterList.push_back("Z");
+
+      
+      lowerCases->addStretch();
+      for(int i = 0; i < lowerLetterList.size(); i++)
+      {
+
+	QVBoxLayout *layout = new QVBoxLayout();
+	QLabel *letterImg = new QLabel();
+	QRadioButton *a = new QRadioButton(tr(lowerLetterList[i]));
+	radio2label[a] = letterImg;
+        layout->addWidget(letterImg);
+	layout->addWidget(a);
+	lowerCases->addLayout(layout);
+	this->buttonGroup->addButton(a);
+      }
+      lowerCases->addStretch();
+      
+      upperCases->addStretch();
+      for(int i = 0; i < upperLetterList.size(); i++)
+      {
+	QVBoxLayout *layout = new QVBoxLayout();
+	QLabel *letterImg = new QLabel();
+	QRadioButton *a = new QRadioButton(tr(upperLetterList[i]));
+	radio2label[a] = letterImg;
+        layout->addWidget(letterImg);
+	layout->addWidget(a);
+	upperCases->addLayout(layout);
+	this->buttonGroup->addButton(a);
+      }
+      upperCases->addStretch();
+  
+}
+
+
+void BuildFontDialog::goPrevious()
+{
+  currentPage = currentPage - 1;
+  if(currentPage < 0)
+  {
+    currentPage = 0;
+  }
+  displayPage();
+}
+
+void BuildFontDialog::goNext()
+{
+  
+  currentPage = currentPage + 1;
+  if(currentPage >= doc->numPages())
+  {
+    currentPage = doc->numPages()-1;
+  }
+  displayPage();
+
+}
+
+void BuildFontDialog::displayPage()
+{
+  QImage page = doc->page(currentPage)->renderToImage(150, 150);
+  imageLabel->setPixmap(QPixmap::fromImage(page));
+  imageLabel->adjustSize();
+  QString pageText;
+  pageText.append(QString::number(currentPage+1));
+  pageText.append("/");
+  pageText.append(QString::number(doc->numPages()));
+  pageIndicator->setText(pageText);
+
+}
 
 
 NCSAFindBar::NCSAFindBar( Okular::Document * document, QWidget * parent )
@@ -61,58 +267,16 @@ NCSAFindBar::NCSAFindBar( Okular::Document * document, QWidget * parent )
     vlay->setMargin( 2 );
     vlay->addLayout(lay);
 
-    /*
-    QToolButton * closeBtn = new QToolButton( this );
-    closeBtn->setIcon( KIcon( "dialog-close" ) );
-    closeBtn->setToolTip( i18n( "Close" ) );
-    closeBtn->setAutoRaise( true );
-    lay->addWidget( closeBtn );
-
-    QLabel * label = new QLabel( i18nc( "NCSA Find text", "NCSA F&ind:" ), this );
-    //lay->addWidget( label );
-
-    m_search = new SearchLineWidget( this, document );
-    m_search->lineEdit()->setSearchCaseSensitivity( Qt::CaseInsensitive );
-    m_search->lineEdit()->setSearchMinimumLength( 0 );
-    m_search->lineEdit()->setSearchType( Okular::Document::NextMatch );
-    m_search->lineEdit()->setSearchId( PART_SEARCH_ID );
-    m_search->lineEdit()->setSearchColor( qRgb( 255, 255, 64 ) );
-    m_search->lineEdit()->setSearchMoveViewport( true );
-    m_search->lineEdit()->setToolTip( i18n( "Text to search for" ) );
-    m_search->installEventFilter( this );
-    label->setBuddy( m_search->lineEdit() );
-    //lay->addWidget( m_search );
-
-    QPushButton * findNextBtn = new QPushButton( KIcon( "go-down-search" ), i18nc( "NCSA Find and go to the next search match", "Next" ), this );
-    findNextBtn->setToolTip( i18n( "Jump to next match" ) );
-    //lay->addWidget( findNextBtn );
-
-    QPushButton * findPrevBtn = new QPushButton( KIcon( "go-up-search" ), i18nc( "Find and go to the previous search match", "Previous" ), this );
-    findPrevBtn->setToolTip( i18n( "Jump to previous match" ) );
-    //lay->addWidget( findPrevBtn );
-    */
 
     QPushButton * optionsBtn = new QPushButton( this );
     optionsBtn->setText( i18n( "NCSA Options" ) );
     optionsBtn->setToolTip( i18n( "Modify search behavior" ) );
     QMenu * optionsMenu = new QMenu( optionsBtn );
-    //m_caseSensitiveAct = optionsMenu->addAction( i18n( "Case sensitive" ) );
-    //m_caseSensitiveAct->setCheckable( true );
-    //m_fromCurrentPageAct = optionsMenu->addAction( i18n( "From current page" ) );
-    //m_fromCurrentPageAct->setCheckable( true );
+    m_buildFontAct = optionsMenu->addAction( i18n( "Create custom font" ) );
+    connect( m_buildFontAct, SIGNAL(triggered(bool)), this, SLOT(buildFontAct(bool)) );
+
     optionsBtn->setMenu( optionsMenu );
     lay->addWidget( optionsBtn );
-
-    /*
-    connect( closeBtn, SIGNAL(clicked()), this, SLOT(closeAndStopSearch()) );
-    connect( findNextBtn, SIGNAL(clicked()), this, SLOT(findNext()) );
-    connect( findPrevBtn, SIGNAL(clicked()), this, SLOT(findPrev()) );
-    connect( m_caseSensitiveAct, SIGNAL(toggled(bool)), this, SLOT(caseSensitivityChanged()) );
-    connect( m_fromCurrentPageAct, SIGNAL(toggled(bool)), this, SLOT(fromCurrentPageChanged()) );
-*/
-    //m_caseSensitiveAct->setChecked( Okular::Settings::searchCaseSensitive() );
-    //m_fromCurrentPageAct->setChecked( Okular::Settings::searchFromCurrentPage() );
-    
     
     QStringList fonts = QFontDatabase().families();
     
@@ -147,6 +311,7 @@ NCSAFindBar::NCSAFindBar( Okular::Document * document, QWidget * parent )
 
     // "activate" it only at th very end
     m_active = true;
+    wordSpottingUtil = NULL;
     
 }
 
@@ -154,33 +319,14 @@ NCSAFindBar::~NCSAFindBar()
 {
 }
 
-/*
-void NCSAFindBar::preProcessPage(int &width, int &height, const Okular::Page *page)
+
+void NCSAFindBar::buildFontAct(bool b)
 {
-  qreal factor = 1;
-  
-  if (mimeType_->is("application/vnd.ms-htmlhelp") ||
-    mimeType_->is("application/x-chm")) {
-    //for chm docs request page with the true size (factor = 1)
-    factor = 1.0;
-  } else if (Window::FIT_WIDTH_ZOOM_FACTOR == zoomFactor_) {
-    //adjust scale factor to occupy the entire window width
-    factor = qreal(winWidth_)/page->width();
-  } else {
-    factor = zoomFactor_;
-  }
-  
-  width = int(factor*(page->width()));
-  height = int(factor*(page->height()));
-  //adjust size in order to stay below this threshold (used by okular core library)
-  const qint64 area = qint64(width)*qint64(height);
-  if(area > 20000000L) {
-    qDebug() << "adjust width and height in order to stay below threshold";
-    qreal factor2 = qreal(20000000L)/qreal(area);
-    height = int(height*factor2);
-  }
+  QString filepath =  getFilePath();
+  Poppler::Document *pdf = Poppler::Document::load(filepath);  
+  BuildFontDialog* dialog = new BuildFontDialog(pdf);
+  dialog->show();
 }
-*/
 
 
 QString NCSAFindBar::getFilePath()
@@ -200,67 +346,6 @@ QString NCSAFindBar::getFilePath()
   
 }
 
-
-//send request for page pixmap
-void NCSAFindBar::sendRequest(const Okular::Page *page, int width, int height)
-{
-
-   QString filepath =  getFilePath();
-   Poppler::Document *pdf = Poppler::Document::load(filepath);  
-
-   if(pdf == NULL)
-   {
-      QMessageBox::warning(0, QString("Error"), QString("Cannot locate file at path: ").append(filepath).append(" ."));
-      return;
-   }
-   
-   NCSAWordSpottingUtil wordSpottingUtil;
-   for(int i = 0; i < pdf->numPages(); i++)
-   {
-     wordSpottingUtil.addPage(pdf->page(i)->renderToImage(150, 150), i);
-   }
-   
-     
-     QPixmap search_input(display->size());
-     display->render(&search_input);     
-     
-     searchResult = wordSpottingUtil.search(search_input, 10);
-     
-     
-     
-     
-     ////////displaying results
-     resultComboBox->clear();
-     for(int i = 0; i < searchResult.size(); i++)
-     {
-       NCSAWordInfo* wordInfo = searchResult[i];
-       QImage returnedPage = pdf->page(wordInfo->pagenum)->renderToImage(150,150);
-       const QImage word = returnedPage.copy(wordInfo->box->x, wordInfo->box->y, wordInfo->box->w, wordInfo->box->h);
-
-       resultComboBox->addItem(QPixmap::fromImage(word), "", -1);
-       returnedPage.height();
-       returnedPage.width();
-       
-       /*if(i == 0)
-       {
-	   emit searchResultSelected(wordInfo->pagenum,
-				     wordInfo->box->x * 1.0 / returnedPage.width(), 
-				     wordInfo->box->y * 1.0 / returnedPage.height(), 
-			             wordInfo->box->w * 1.0 / returnedPage.width(), 
-			             wordInfo->box->h * 1.0 / returnedPage.height());
-       }*/
-
-     }
-     
-     
-     
-     QSize size(100,30);
-     resultComboBox->setIconSize(size);
-     
-
-     
-    
-}
   
 void NCSAFindBar::notifyPageChanged(int page, int flags)
 {
@@ -276,63 +361,62 @@ void NCSAFindBar::resultComboBoxIndexChanged(int index)
 			             wordInfo->box->w * 1.0 / wordInfo->width, 
 			             wordInfo->box->h * 1.0 / wordInfo->height);
 
-
 }
+
+void NCSAFindBar::preprocessDocument()
+{
+  
+     wordSpottingUtil = new NCSAWordSpottingUtil();
+     QString filepath =  getFilePath();
+     Poppler::Document *pdf = Poppler::Document::load(filepath);  
+
+     if(pdf == NULL)
+     {
+        QMessageBox::warning(0, QString("Error"), QString("Cannot locate file at path: ").append(filepath).append(" ."));
+        return;
+     }
+     
+     for(int i = 0; i < pdf->numPages(); i++)
+     {
+       wordSpottingUtil->addPage(pdf->page(i)->renderToImage(150, 150), i);
+     }
+}
+
 
 void NCSAFindBar::performSearch()
 {
   
-  
-  qDebug() << "performing search";
-  const QPixmap *pix = NULL;
-  if (NULL != doc) {
-      const Okular::Page *p = doc->page(0);
-      
-      if (NULL != p) {
-	int width = p->width();
-        int height = p->height();
-	
-	this->sendRequest(p, width, height);
-	
-	/*
-	pix = p->_o_nearestPixmap(6,-1,-1);
-	if(pix != NULL)
-	{
-	}
-	else
-	{
-	    qDebug() << "null pix";
+  if(wordSpottingUtil == NULL)
+  {
+    this->preprocessDocument();
+  }
+     
+     QPixmap search_input(display->size());
+     display->render(&search_input);     
+     
+     searchResult = wordSpottingUtil->search(search_input, 10);
+     
+     
+     QString filepath =  getFilePath();
+     Poppler::Document *pdf = Poppler::Document::load(filepath);  
+     
+     ////////displaying results
+     resultComboBox->clear();
+     for(int i = 0; i < searchResult.size(); i++)
+     {
+       NCSAWordInfo* wordInfo = searchResult[i];
+       QImage returnedPage = pdf->page(wordInfo->pagenum)->renderToImage(150,150); //TODO: get rid of having to read the file again
+       //QImage returnedPage = *(wordInfo->page);
+       const QImage word = returnedPage.copy(wordInfo->box->x, wordInfo->box->y, wordInfo->box->w, wordInfo->box->h);
 
-	}
-        //pix = p->_o_nearestPixmap(6, -1, -1);
-	//p->_o
-	
-	*/
-      }
-      else
-      {
-	qDebug() << "null page";
-      }
-    }
-    else
-    {
-      qDebug() << "null doc";
-    }
-    
-    
-  /*
-   * 
-       qDebug() << "PagePainter::getPagePixmap";
-    const QPixmap *pix = NULL;
-    if (NULL != doc_) {
-      const Okular::Page *p = doc_->page(page);
-      if (NULL != p) {
-        pix = p->_o_nearestPixmap(OkularDocument::OKULAR_OBSERVER_ID, -1, -1);
-      }
-    }
-    return pix;
-    */
-  
+       resultComboBox->addItem(QPixmap::fromImage(word), "", -1);
+       returnedPage.height();
+       returnedPage.width();
+
+     }
+     QSize size(100,30);
+     resultComboBox->setIconSize(size);
+     
 }
 void NCSAFindBar::searchLineTextChanged(QString text)
 {
@@ -352,101 +436,5 @@ void NCSAFindBar::changeFont(int index)
     newfont.setFamily(fontComboBox->itemText(index));
     display->setFont(newfont);
 }
-/*
-bool NCSAFindBar::eventFilter( QObject *target, QEvent *event ) {
-    if ( target == m_search )
-    {
-        if ( event->type() == QEvent::KeyPress )
-        {
-            QKeyEvent *keyEvent = static_cast<QKeyEvent *>( event );
-            if ( keyEvent->key() == Qt::Key_PageUp || keyEvent->key() == Qt::Key_PageDown ) 
-            {
-                emit forwardKeyPressEvent( keyEvent );
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-QString NCSAFindBar::text() const
-{
-    return m_search->lineEdit()->text();
-}
-
-Qt::CaseSensitivity NCSAFindBar::caseSensitivity() const
-{
-    return m_caseSensitiveAct->isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive;
-}
-
-void NCSAFindBar::focusAndSetCursor()
-{
-    setFocus();
-    m_search->lineEdit()->selectAll();
-    m_search->lineEdit()->setFocus();
-}
-
-bool NCSAFindBar::maybeHide()
-{
-    if ( m_search->lineEdit()->isSearchRunning() )
-    {
-        m_search->lineEdit()->stopSearch();
-        return false;
-    }
-    else
-    {
-        hide();
-        return true;
-    }
-}
-*/
-
-/*
-void NCSAFindBar::findNext()
-{
-  display->setText("sdfds");
-    //m_search->lineEdit()->setSearchType( Okular::Document::NextMatch );
-    //m_search->lineEdit()->findNext();
-}
-
-void NCSAFindBar::findPrev()
-{
-    m_search->lineEdit()->setSearchType( Okular::Document::PreviousMatch );
-    m_search->lineEdit()->findPrev();
-}
-
-void NCSAFindBar::resetSearch()
-{
-    m_search->lineEdit()->resetSearch();
-}
-
-void NCSAFindBar::caseSensitivityChanged()
-{
-    m_search->lineEdit()->setSearchCaseSensitivity( m_caseSensitiveAct->isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive );
-    if ( !m_active )
-        return;
-    Okular::Settings::setSearchCaseSensitive( m_caseSensitiveAct->isChecked() );
-    Okular::Settings::self()->writeConfig();
-    m_search->lineEdit()->restartSearch();
-}
-
-void NCSAFindBar::fromCurrentPageChanged()
-{
-    m_search->lineEdit()->setSearchFromStart( !m_fromCurrentPageAct->isChecked() );
-    if ( !m_active )
-        return;
-    Okular::Settings::setSearchFromCurrentPage( m_fromCurrentPageAct->isChecked() );
-    Okular::Settings::self()->writeConfig();
-}
-
-void NCSAFindBar::closeAndStopSearch()
-{
-    if ( m_search->lineEdit()->isSearchRunning() )
-    {
-        m_search->lineEdit()->stopSearch();
-    }
-    close();
-}
-*/
 
 #include "ncsafindbar.moc"
