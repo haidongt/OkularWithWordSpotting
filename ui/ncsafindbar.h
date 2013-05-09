@@ -85,6 +85,7 @@ private:
     QButtonGroup *buttonGroup;
     QButtonGroup isBoxedDisplay;
     std::map<QAbstractButton*, QLabel*> radio2label;
+    std::vector<QRect> letterRects;
 
 };
 

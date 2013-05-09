@@ -204,6 +204,7 @@ void BuildFontDialog::createLetters(QHBoxLayout *lowerCases, QHBoxLayout *upperC
 	layout->addWidget(a);
 	lowerCases->addLayout(layout);
 	this->buttonGroup->addButton(a);
+	if(i == 0) a->setChecked(true);
       }
       lowerCases->addStretch();
       
@@ -274,12 +275,14 @@ void BuildFontDialog::displayPage()
     QPainter p;
     p.begin(&boxedPage);
     p.setPen(Qt::red);
+    letterRects.clear();
     if(ri != NULL)
     {
       do
       {
 	int left, top, right, bottom;
 	ri->BoundingBox(tesseract::RIL_SYMBOL, &left, &top, &right, &bottom);
+	letterRects.push_back(QRect(left, top, right-left, bottom-top));
 	p.drawRect(QRect(left, top, right-left, bottom-top));
       }
       while(ri->Next(tesseract::RIL_SYMBOL));
@@ -301,8 +304,27 @@ void BuildFontDialog::displayPage()
 }
 
 void BuildFontDialog::pickLetter(const QPoint & p)
-{
-  qDebug() << p;
+{  
+  for(int i = 0; i < letterRects.size(); i++)
+  {
+    QRect rect = letterRects[i];
+
+    if(p.x() >= rect.left() && p.x() <= rect.right() && p.y() >= rect.top() && p.y() <= rect.bottom())
+    {
+      qDebug() << "wrapped in" << p << rect;
+      QImage picked = originalPage.copy(rect);
+      QLabel* label = radio2label[this->buttonGroup->checkedButton()];
+      label->setPixmap(QPixmap::fromImage(picked));
+      label->adjustSize();
+      QRadioButton *next= (QRadioButton *)(this->buttonGroup->button(this->buttonGroup->id(this->buttonGroup->checkedButton())-1));
+      if(next != NULL)
+      {
+        next->setChecked(true);
+      }
+      break;
+    }
+  }
+  
 }
 
 
