@@ -159,6 +159,7 @@ set(okularpart_SRCS
    ui/findbar.cpp
    ui/ncsafindbar.cpp # added by Haidong Tang
    ui/ncsawordspottingutil.cpp # added by Haidong Tang
+   ui/ncsafonteditor.cpp # added by Haidong Tang
    ui/formwidgets.cpp
    ui/guiutils.cpp
    ui/ktreeviewsearchline.cpp

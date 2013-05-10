@@ -28,6 +28,7 @@
 #include <qcombobox.h>
 #include <QStringList>
 #include <QPainter>
+#include <QFileDialog>
 
 #include <core/generator.h>
 #include <tesseract/baseapi.h>
@@ -39,17 +40,36 @@ void ImageLabel::mousePressEvent(QMouseEvent * e)
   QLabel::mousePressEvent(e);
   emit clicked(e->pos());
 }
+
+void ImageLabel::dragEnterEvent(QDragEnterEvent * e)
+{
+  QLabel::dragEnterEvent(e);
+  qDebug() << "enter drag";
+}
+void ImageLabel::dragMoveEvent(QDragMoveEvent * e)
+{
+  QLabel::dragMoveEvent(e);
+  qDebug() << "move drag";
+}
+void ImageLabel::dragLeaveEvent(QDragLeaveEvent * e)
+{
+  QLabel::dragLeaveEvent(e);
+  qDebug() << "leave drag";
+}
+
     
 BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
 {
 
     doc = pdf;
     currentPage = 0;
+    QPushButton *saveToFileButton = new QPushButton(tr("Save"));
     QPushButton *confirmButton = new QPushButton(tr("OK"));
     QPushButton *closeButton = new QPushButton(tr("Cancel"));
     connect(closeButton, SIGNAL(clicked()), this, SLOT(close()));
     connect(confirmButton, SIGNAL(clicked()), this, SLOT(testFun()));
-    
+    connect(saveToFileButton, SIGNAL(clicked()), this, SLOT(saveToFile()));
+
     imageLabel = new ImageLabel;
     imageLabel->setBackgroundRole(QPalette::Base);
     imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
@@ -69,7 +89,12 @@ BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
     isBoxedDisplay.addButton(displayOriginal);
     isBoxedDisplay.addButton(displayBoxed);
     displayOriginal->setChecked(true);
-
+    
+    selectionArbitrary = new QCheckBox();
+    selectionArbitrary->setChecked(false);
+    selectionArbitrary->setText("Arbitrary Rectangle");
+    arbitraryLastPoint.setX(-1);
+    
     connect(displayOriginal, SIGNAL(clicked()), this, SLOT(displayOriginalPage()));
     connect(displayBoxed, SIGNAL(clicked()), this, SLOT(displayBoxedPage()));
 
@@ -78,6 +103,8 @@ BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
     pageNavigationLayout->addWidget(previousButton);
     pageNavigationLayout->addWidget(pageIndicator);
     pageNavigationLayout->addWidget(nextButton);
+    pageNavigationLayout->addStretch();
+    pageNavigationLayout->addWidget(selectionArbitrary);
     pageNavigationLayout->addStretch();
     pageNavigationLayout->addWidget(displayOriginal);
     pageNavigationLayout->addWidget(displayBoxed);
@@ -88,21 +115,35 @@ BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
     QHBoxLayout *upperCases = new QHBoxLayout;
     buttonGroup= new QButtonGroup;
     createLetters(lowerCases, upperCases);
+    connect(buttonGroup,SIGNAL(buttonClicked(QAbstractButton*)),this,SLOT(displayFontEditorFor(QAbstractButton*)));
 
     QVBoxLayout *lettersLayout = new QVBoxLayout;
     lettersLayout->addLayout(lowerCases);
     lettersLayout->addLayout(upperCases);
-
     
+    QHBoxLayout *letterAdjustAndLetters = new QHBoxLayout;
+    fontEditor = new NCSAFontEditor(&builtFont);
+    letterAdjustAndLetters->addLayout(fontEditor);
+    letterAdjustAndLetters->addLayout(lettersLayout);
+
+    QHBoxLayout *testLayout = new QHBoxLayout;
+    testInput = new QLineEdit;
+    testDisplay = new QLabel;
+    testLayout->addWidget(testInput);
+    testLayout->addStretch();
+    testLayout->addWidget(testDisplay);
+    connect(testInput,SIGNAL(textChanged(QString)),this,SLOT(testInputChanged(QString)));
     
     QVBoxLayout *verticalLayout = new QVBoxLayout;
     verticalLayout->addWidget(scrollArea);
     verticalLayout->addLayout(pageNavigationLayout);
-    verticalLayout->addLayout(lettersLayout);
+    verticalLayout->addLayout(letterAdjustAndLetters);
+    verticalLayout->addLayout(testLayout);
 
 
     QHBoxLayout *buttonsLayout = new QHBoxLayout;
     buttonsLayout->addStretch(1);
+    buttonsLayout->addWidget(saveToFileButton);
     buttonsLayout->addWidget(confirmButton);
     buttonsLayout->addWidget(closeButton);
 
@@ -112,12 +153,14 @@ BuildFontDialog::BuildFontDialog(Poppler::Document *pdf)
     //mainLayout->addSpacing(12);
     mainLayout->addLayout(buttonsLayout);
     setLayout(mainLayout);
-    resize(1200, 800);
-
+    resize(1000, 600);
+   
     setWindowTitle(tr("Font Creater"));
     
     displayPage();
 }
+
+
 
 void BuildFontDialog::testFun()
 {
@@ -198,7 +241,8 @@ void BuildFontDialog::createLetters(QHBoxLayout *lowerCases, QHBoxLayout *upperC
 
 	QVBoxLayout *layout = new QVBoxLayout();
 	QLabel *letterImg = new QLabel();
-	QRadioButton *a = new QRadioButton(tr(lowerLetterList[i]));
+	QRadioButton *a = new QRadioButton(lowerLetterList[i]);
+	radioBtn2Char[a] = lowerLetterList[i][0];
 	radio2label[a] = letterImg;
         layout->addWidget(letterImg);
 	layout->addWidget(a);
@@ -213,7 +257,8 @@ void BuildFontDialog::createLetters(QHBoxLayout *lowerCases, QHBoxLayout *upperC
       {
 	QVBoxLayout *layout = new QVBoxLayout();
 	QLabel *letterImg = new QLabel();
-	QRadioButton *a = new QRadioButton(tr(upperLetterList[i]));
+	QRadioButton *a = new QRadioButton(upperLetterList[i]);
+	radioBtn2Char[a] = upperLetterList[i][0];
 	radio2label[a] = letterImg;
         layout->addWidget(letterImg);
 	layout->addWidget(a);
@@ -276,14 +321,45 @@ void BuildFontDialog::displayPage()
     p.begin(&boxedPage);
     p.setPen(Qt::red);
     letterRects.clear();
+    
+    QRect lastLetterBoxTight(0,0,0,0);
+    QRect lastWordBox(0,0,0,0);
+
     if(ri != NULL)
     {
       do
       {
 	int left, top, right, bottom;
 	ri->BoundingBox(tesseract::RIL_SYMBOL, &left, &top, &right, &bottom);
-	letterRects.push_back(QRect(left, top, right-left, bottom-top));
-	p.drawRect(QRect(left, top, right-left, bottom-top));
+	int x1, y1, x2, y2;
+	ri->Baseline(tesseract::RIL_SYMBOL, &x1, &y1, &x2, &y2);
+	int baseline = y1 + ((left+right)/2-x1)*(y2-y1)/(x2-x1);
+	baseline = baseline - top;
+	QRect letterBoxTight = QRect(left, top, right-left, bottom-top);
+	QRect letterBox = letterBoxTight;
+	QRect wordBox = letterBoxTight;
+	//tightLetterBox2Box[letterBoxTight] = letterBox;
+	
+	wordBox.setLeft(x1);
+	wordBox.setRight(x2);
+	letterRects.push_back(letterBoxTight);
+	baselines.push_back(baseline);
+	p.drawRect(letterBoxTight);
+	
+	/*
+	if (lastLetterBoxTight.x() <= wordBox.x())
+	{
+	  QRect lastLetterBox = tightLetterBox2Box[lastLetterBoxTight];
+	  int X1 = lastLetterBoxTight.x()+lastLetterBoxTight.width();
+	  int X2 = letterBoxTight.x();
+	  tightLetterBox2Box[lastLetterBoxTight] = QRect(lastLetterBox.x(),lastLetterBox.top(), (X1+X2)/2 - lastLetterBox.x(), lastLetterBox.height());
+	  tightLetterBox2Box[letterBoxTight] = QRect((X1+X2)/2,letterBox.top(), letterBox.width(), letterBox.height());
+
+	}*/
+	
+	lastLetterBoxTight = letterBoxTight;
+	lastWordBox = wordBox;
+
       }
       while(ri->Next(tesseract::RIL_SYMBOL));
     }
@@ -304,28 +380,173 @@ void BuildFontDialog::displayPage()
 }
 
 void BuildFontDialog::pickLetter(const QPoint & p)
-{  
+{ 
+  if (selectionArbitrary->isChecked())
+  {
+    if(arbitraryLastPoint.x() < 0)
+    {
+      arbitraryLastPoint = p;
+    }
+    else
+    {
+      QRect rect(arbitraryLastPoint, p);
+      if(rect.height() <= 0) rect.setHeight(10);
+      if(rect.width() <= 0) rect.setWidth(10); //TODO Code smell!!
+      QImage picked = originalPage.copy(rect);
+      QLabel* label = radio2label[this->buttonGroup->checkedButton()]; //TODO duplicate code!!!
+      label->setPixmap(QPixmap::fromImage(picked));
+      label->adjustSize();
+      FontLetterInfo info;
+      info.img = QPixmap::fromImage(picked);
+      info.topLeft = QPoint(-1,-picked.height()) ;
+      info.width = info.img.width();
+      char letter =  radioBtn2Char[(QRadioButton*)(this->buttonGroup->checkedButton())];
+      builtFont[letter] = info;
+      
+      QRadioButton *next= (QRadioButton *)(this->buttonGroup->button(this->buttonGroup->id(this->buttonGroup->checkedButton())-1));
+      if(next != NULL)
+      {
+        next->setChecked(true);
+      }
+      
+      arbitraryLastPoint.setX(-1);
+    }
+    return;
+  }
   for(int i = 0; i < letterRects.size(); i++)
   {
     QRect rect = letterRects[i];
 
     if(p.x() >= rect.left() && p.x() <= rect.right() && p.y() >= rect.top() && p.y() <= rect.bottom())
     {
-      qDebug() << "wrapped in" << p << rect;
+      //qDebug() << "wrapped in" << p << rect;
       QImage picked = originalPage.copy(rect);
       QLabel* label = radio2label[this->buttonGroup->checkedButton()];
       label->setPixmap(QPixmap::fromImage(picked));
       label->adjustSize();
+      
+      
+      
+      int baseline = baselines[i]; //TODO : vulnerable!!!
+      char letter =  radioBtn2Char[(QRadioButton*)(this->buttonGroup->checkedButton())];
+      FontLetterInfo info;
+      info.img = QPixmap::fromImage(picked);
+      qDebug() << "baseline" << info.img.height() << baseline;
+      info.topLeft = QPoint(-1,-baseline) ;
+      info.width = info.img.width()+2;
+      builtFont[letter] = info;
+      qDebug() << "add to map" << letter;
+      
+      
       QRadioButton *next= (QRadioButton *)(this->buttonGroup->button(this->buttonGroup->id(this->buttonGroup->checkedButton())-1));
       if(next != NULL)
       {
         next->setChecked(true);
       }
+      
       break;
     }
   }
   
 }
+
+void BuildFontDialog::testInputChanged(QString str)
+{
+  std::vector<FontLetterInfo> fontLetters;  
+  for(int i = 0; i < str.size(); i++)
+  {
+    char letter = str.at(i).toAscii();
+    if(builtFont.count(letter) != 0)
+    {
+      fontLetters.push_back(builtFont[letter]);
+      qDebug() << letter;
+    }
+  }  
+  
+  QPixmap renderedText = renderFont2Pix(fontLetters);
+  testDisplay->setPixmap(renderedText);
+  testDisplay->adjustSize();
+
+
+}
+
+QPixmap BuildFontDialog::renderFont2Pix(std::vector<FontLetterInfo> fontLetters)
+{
+  int accumulatedWidth = 0;
+  int leftMost = 0;
+  int rightMost = 0;
+  int topMost = 0;
+  int bottomMost = 0;
+  
+  for(int i = 0; i < fontLetters.size(); i++)
+  {
+    if(accumulatedWidth + fontLetters[i].topLeft.x() < leftMost)
+    {
+      leftMost = accumulatedWidth + fontLetters[i].topLeft.x();
+    }
+    if( accumulatedWidth + fontLetters[i].topLeft.x() + fontLetters[i].img.width() > rightMost)
+    {
+      rightMost = accumulatedWidth + fontLetters[i].topLeft.x() + fontLetters[i].img.width();
+    }
+    if(fontLetters[i].topLeft.y() < topMost)
+    {
+      topMost = fontLetters[i].topLeft.y();
+    }
+    if(fontLetters[i].topLeft.y() + fontLetters[i].img.height() > bottomMost)
+    {
+      bottomMost = fontLetters[i].topLeft.y() + fontLetters[i].img.height();
+    }
+    accumulatedWidth += fontLetters[i].width;
+  }
+  
+  qDebug() << leftMost << rightMost << topMost << bottomMost;
+  QPixmap rendered(rightMost-leftMost, bottomMost - topMost);
+  rendered.fill(Qt::transparent);
+  QPainter p(&rendered);
+  
+  int baseline = 0 - topMost;
+  int leftMargin = 0 - leftMost;
+  
+  accumulatedWidth = 0;
+  for(int i = 0; i < fontLetters.size(); i++)
+  {
+    int x = accumulatedWidth + leftMargin + fontLetters[i].topLeft.x();
+    qDebug() << "decomposed" << accumulatedWidth << leftMargin << fontLetters[i].topLeft.x();// x << y;
+    int y = baseline + fontLetters[i].topLeft.y();
+    qDebug() << x << y;
+    p.drawPixmap(x, y, fontLetters[i].img);
+    accumulatedWidth += fontLetters[i].width;
+  }
+  
+
+
+  return rendered;
+}
+
+
+void BuildFontDialog::saveToFile()
+{
+  
+  QString path = QFileDialog::getSaveFileName(this, "Save file", "", ".conf");
+  QDir dir = QDir::root();
+  if(!dir.mkdir(path))
+  {
+    qDebug() << "cannot create folder!";
+  }
+  else
+  {
+  }
+  
+}
+
+void BuildFontDialog::displayFontEditorFor(QAbstractButton*)
+{
+  char letter =  radioBtn2Char[(QRadioButton*)(this->buttonGroup->checkedButton())];
+  fontEditor->displayEditorFor(letter);
+}
+
+
+
 
 
 NCSAFindBar::NCSAFindBar( Okular::Document * document, QWidget * parent )

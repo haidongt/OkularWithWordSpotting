@@ -22,6 +22,7 @@
 #include <leptonica/allheaders.h>
 
 #include "ncsawordspottingutil.h"
+#include "ncsafonteditor.h"
 #include <poppler/qt4/poppler-qt4.h>
 
 class QAction;
@@ -41,15 +42,34 @@ class Document;
 #include <vector>
 #include <QLabel>
 #include <QRadioButton>
+#include <QCheckBox>
 
+class NCSAFontEditor;
 class ImageLabel : public QLabel
 {
     Q_OBJECT
 protected:
   void mousePressEvent(QMouseEvent * e);
+  void dragEnterEvent(QDragEnterEvent * e);
+  void dragMoveEvent(QDragMoveEvent * e);
+  void dragLeaveEvent(QDragLeaveEvent * e);
 signals:
   void clicked(const QPoint & pos);
 };
+
+
+class FontLetterInfo
+{
+public:
+  QPixmap img;
+  int width;
+  QPoint topLeft;
+  QRect getOccupance()
+  {
+    return QRect(0,0,0,0);
+  }
+};
+
 
 class BuildFontDialog:public QDialog
 {
@@ -57,6 +77,9 @@ class BuildFontDialog:public QDialog
 
 public:
     BuildFontDialog(Poppler::Document *pdf);
+    
+    QPixmap renderFont2Pix(std::vector<FontLetterInfo> fontLetters);
+
 
 public slots:
     void goPrevious();
@@ -65,6 +88,9 @@ public slots:
     void displayOriginalPage();
     void displayBoxedPage();
     void pickLetter(const QPoint & p);
+    void saveToFile();
+    void testInputChanged(QString);
+    void displayFontEditorFor(QAbstractButton*);
 
 
 private:
@@ -76,6 +102,9 @@ private:
     QLabel * pageIndicator;
     QImage originalPage;
     QImage boxedPage;
+    
+    QLineEdit *testInput;
+    QLabel * testDisplay;
 
     Poppler::Document *doc;
     int currentPage;
@@ -86,6 +115,14 @@ private:
     QButtonGroup isBoxedDisplay;
     std::map<QAbstractButton*, QLabel*> radio2label;
     std::vector<QRect> letterRects;
+    std::vector<int> baselines;
+    std::map<QRect, QRect> tightLetterBox2Box;
+    
+    std::map<char, FontLetterInfo> builtFont;
+    std::map<QRadioButton *, char> radioBtn2Char;
+    QCheckBox *selectionArbitrary;
+    QPoint arbitraryLastPoint;
+    NCSAFontEditor *fontEditor;
 
 };
 
