@@ -433,7 +433,7 @@ void BuildFontDialog::pickLetter(const QPoint & p)
       info.img = QPixmap::fromImage(picked);
       qDebug() << "baseline" << info.img.height() << baseline;
       info.topLeft = QPoint(-1,-baseline) ;
-      info.width = info.img.width()+2;
+      info.width = info.img.width();
       builtFont[letter] = info;
       qDebug() << "add to map" << letter;
       

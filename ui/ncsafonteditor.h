@@ -5,27 +5,29 @@
 #include <qlayout.h>
 #include "ncsafindbar.h"
 #include <map>
-
+#include <QButtonGroup>
 class FontLetterInfo;
 
 class NCSAFontEditorDisplay: public QLabel
 {
         Q_OBJECT
 public:
-  NCSAFontEditorDisplay();
+  NCSAFontEditorDisplay(QButtonGroup *bg);
   void setFontLetterInfo(FontLetterInfo & lif);
 protected:
   void paintEvent(QPaintEvent * e);
   void mousePressEvent(QMouseEvent * e);
 private:
   FontLetterInfo * info;
+  QButtonGroup *buttonGroup;
 signals:
   void clicked(const QPoint & pos);
 public slots:
-  void testFun(const QPoint & p);
+  void adjustLine(const QPoint & p);
 };
 
-class NCSAFontEditor: public QHBoxLayout
+
+class NCSAFontEditor: public QVBoxLayout
 {
       Q_OBJECT
 public:
@@ -35,5 +37,7 @@ public:
 private:
   std::map<char, FontLetterInfo> *builtFont;
   NCSAFontEditorDisplay * display;
+  QButtonGroup *buttonGroup;
+
 };
 #endif
